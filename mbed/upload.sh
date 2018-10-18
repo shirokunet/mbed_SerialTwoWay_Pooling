@@ -1,0 +1,1 @@
+mbed compile -t GCC_ARM -m NUCLEO_F446RE --source ../serial --source ../mbed-os --build ../BUILD/serial ; cp -f ../BUILD/serial/serial.bin /media/reyes/NODE_F446RE*
