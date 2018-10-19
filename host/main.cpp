@@ -57,8 +57,8 @@ bool read(int data_rx[])
 
 void write(int data_tx[])
 {
-    unsigned char s[20];
-    unsigned char data_s[16];
+    unsigned char s[20] = "";
+    unsigned char data_s[16] = "";
     for (int i = 0; i < data_size; ++i)
     {
         unsigned char input[16];
@@ -75,6 +75,7 @@ int main(void) {
     
     int data_tx[data_size] = {0}; 
     int data_rx[data_size] = {0}; 
+    int reset_cnt = 0;
 
     write(data_tx);
     while(1)
@@ -94,6 +95,18 @@ int main(void) {
                 else data_tx[1] --;
             }
             write(data_tx);
+            reset_cnt = 0;
+        }
+        else
+        {
+            /* recovery */
+            if (reset_cnt > 100)
+            {
+                write(data_tx);
+                reset_cnt = 0;
+            }
+            printf("%d", reset_cnt);
+            reset_cnt ++;
         }
     }
 
