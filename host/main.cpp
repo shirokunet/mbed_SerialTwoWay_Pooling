@@ -16,7 +16,7 @@ bool read(int data_rx[])
     uint8_t buf[128];
     int ret;
 
-    /* Read up to buf size or 2000ms timeout */
+    /* Read up to buf size or xx ms timeout */
     if ((ret = serial_read(&serial, buf, sizeof(buf), timeout_ms)) < 0) {
         fprintf(stderr, "serial_read(): %s\n", serial_errmsg(&serial));
         exit(1);
