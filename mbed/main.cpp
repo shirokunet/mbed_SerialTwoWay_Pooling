@@ -1,24 +1,15 @@
 #include "mbed.h" 
 #include "TextLCD.h"
 
+#define data_size 2
+
 TextLCD lcd(PA_0, PA_1, PA_4, PB_0, PC_1, PC_0);  // rs, e, d4-d7
 Serial pc(USBTX, USBRX, 115200); // tx, rx
 
-void Serial_Tx(int i, int j)
+bool read(int data_rx[])
 {
-    pc.printf("s");
-    pc.printf(",");
-    pc.printf("%d", i);
-    pc.printf(",");
-    pc.printf("%d", j);
-    pc.printf(",");
-    pc.printf("\r\n");
-}
-
-void Serial_Rx()
-{
-    char value[2][100];
-    int index[2]={0};
+    char value[data_size][100];
+    int index[data_size]={0};
     char ch;
     
     int num = -1;
@@ -37,28 +28,45 @@ void Serial_Rx()
                 value[num][index[num]++] = ch;
       }
     } while (ch!='\n');
-     
-    value[0][index[0]]='\x0';   // add un 0 to end the c string 
-    value[1][index[1]]='\x0';   // add un 0 to end the c string 
 
-    Serial_Tx(atoi(value[0]), atoi(value[1]));
+    /* char to int */
+    for (int i = 0; i < data_size; ++i)
+    {
+        value[i][index[i]]='\x0';   // add un 0 to end the c string 
+        data_rx[i] = atoi(value[i]);
+    }
 
+    return true;
+}
+
+void write(int data_tx[])
+{
+    pc.printf("s,");
+    for (int i = 0; i < data_size; ++i)
+    {
+        pc.printf("%d,", data_tx[i]);
+    }
+    pc.printf("\r\n"); 
+}
+
+void lcd_write(int data_tx[])
+{
     lcd.cls();
-    lcd.printf(value[0]);
-    lcd.printf(",");
-    lcd.printf(value[1]);  
-    lcd.printf("\n"); 
+    for (int i = 0; i < data_size; ++i)
+    {
+        lcd.printf("%d,", data_tx[i]);
+    }
+    lcd.printf("\n");
 }
 
 int main() {
-    char ch;
-    int i = 0;
-    int j = 0;
-    lcd.printf("hey");
-    wait(1);
-    while(1) {
-        Serial_Rx();
+    int data_rx[data_size] = {0}; 
 
-        // pc.putc(pc.getc());
+    while(1) {
+        if (read(data_rx))
+        {
+            write(data_rx);
+            lcd_write(data_rx);
+        }
     }
 }

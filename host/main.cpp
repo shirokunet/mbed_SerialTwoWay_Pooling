@@ -5,12 +5,14 @@
 #include "serial.h"
 #include "unistd.h"
 
+#define device "/dev/ttyACM0"
+#define data_size 2
+#define timeout_ms 10
+
 serial_t serial;
 
-bool read()
+bool read(int data_rx[])
 {
-    const int data_size = 3;
-    const int timeout_ms = 10;
     uint8_t buf[128];
     int ret;
 
@@ -19,11 +21,11 @@ bool read()
         fprintf(stderr, "serial_read(): %s\n", serial_errmsg(&serial));
         exit(1);
     }
-    printf("read %d bytes: _%s_\n", ret, buf);
+    // printf("read %d bytes: _%s_\n", ret, buf);
 
     if (ret == 0)
     {
-        printf("Nothing\n");
+        printf("Could Not Find Data.\n");
         return false;
     }
 
@@ -32,70 +34,67 @@ bool read()
     snprintf(c, 128, "%s", buf);
 
     /* split */
-    char* tp[data_size];
-    for (int i = 0; i < data_size; ++i)
+    char* tp[data_size+1];
+    for (int i = 0; i < data_size+1; ++i)
     {
         if (i == 0)
-            tp[i] = strtok(c, ",");
+            tp[i] = strtok(c, ",");     // get s
         else
-            tp[i] = strtok(NULL, ",");
+            tp[i] = strtok(NULL, ",");  // get data
     }
 
     /* check start signal */
-    int data[data_size-1];
     if (c[0] == 's')
     {
-        for (int i = 0; i < data_size-1; ++i)
+        for (int i = 0; i < data_size; ++i)
         {
-            data[i] = atoi(tp[i+1]);
-            printf("tp%d:%d,", i, data[i]);
+            data_rx[i] = atoi(tp[i+1]);
         }
-        printf("\n");
     }
 
     return true;
 }
 
-const uint8_t* ctoui8(char c)
+void write(int data_tx[])
 {
-    char a[] = {c, '\0'};                   // char -> char*
-    const uint8_t *buf = (unsigned char*)a; // char* -> unsigned char*
-    return buf;
-}
-
-const uint8_t* itoui8(int num)
-{
-    char c[128] = {0};
-    sprintf(c, "%d", num);                  // int -> char*
-    const uint8_t *buf = (unsigned char*)c; // char* -> unsigned char*
-    return buf;
-}
-
-void write()
-{
-    const uint8_t s[] = "s,123,-456,\r\n";
+    unsigned char s[20];
+    unsigned char data_s[16];
+    for (int i = 0; i < data_size; ++i)
+    {
+        unsigned char input[16];
+        snprintf((char *)input, sizeof input, "%d,", data_tx[i]);
+        strncat((char *) data_s, (char *) input, 16);
+    }
+    snprintf((char *)s, sizeof s, "s,%s\r\n", data_s);
+    printf("tx: %s", s);
     serial_write(&serial, s, sizeof(s));
-
-    // serial_write(&serial, ctoui8('s'), sizeof(ctoui8('s')));
-    // serial_write(&serial, ctoui8(','), sizeof(ctoui8(',')));
-    // serial_write(&serial, itoui8(1234), sizeof(itoui8(1234)));
-    // serial_write(&serial, ctoui8(','), sizeof(ctoui8(',')));
-    // serial_write(&serial, itoui8(-6789), sizeof(itoui8(-6789)));
-    // serial_write(&serial, ctoui8(','), sizeof(ctoui8(',')));
-    // serial_write(&serial, ctoui8('\n'), sizeof(ctoui8('\n')));
 }
 
 int main(void) {
-    serial_open(&serial, "/dev/ttyACM1", 115200);
+    serial_open(&serial, device, 115200);
+    
+    int data_tx[data_size] = {0}; 
+    int data_rx[data_size] = {0}; 
 
-    write();
+    write(data_tx);
     while(1)
     {
-        if (read())
+        if (read(data_rx))
         {
-            write();
+            /* print rx data*/
+            printf("rx: s,");
+            for (int i = 0; i < data_size; ++i)
+                printf("%d,", data_rx[i]);
+            printf("\n");
+
+            /* send next data */
+            for (int i = 0; i < data_size; ++i)
+            {
+                if (i%2==0) data_tx[0] ++;
+                else data_tx[1] --;
+            }
+            write(data_tx);
         }
-        // usleep(1000*1);
     }
 
     serial_close(&serial);
