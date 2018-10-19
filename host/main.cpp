@@ -7,7 +7,7 @@
 
 serial_t serial;
 
-void read()
+bool read()
 {
     const int data_size = 3;
     const int timeout_ms = 10;
@@ -19,12 +19,12 @@ void read()
         fprintf(stderr, "serial_read(): %s\n", serial_errmsg(&serial));
         exit(1);
     }
-    // printf("read %d bytes: _%s_\n", ret, buf);
+    printf("read %d bytes: _%s_\n", ret, buf);
 
     if (ret == 0)
     {
         printf("Nothing\n");
-        return;
+        return false;
     }
 
     /* convert */
@@ -50,26 +50,52 @@ void read()
             data[i] = atoi(tp[i+1]);
             printf("tp%d:%d,", i, data[i]);
         }
+        printf("\n");
     }
-    printf("\n");
+
+    return true;
+}
+
+const uint8_t* ctoui8(char c)
+{
+    char a[] = {c, '\0'};                   // char -> char*
+    const uint8_t *buf = (unsigned char*)a; // char* -> unsigned char*
+    return buf;
+}
+
+const uint8_t* itoui8(int num)
+{
+    char c[128] = {0};
+    sprintf(c, "%d", num);                  // int -> char*
+    const uint8_t *buf = (unsigned char*)c; // char* -> unsigned char*
+    return buf;
 }
 
 void write()
 {
-    uint8_t s[] = "123";
-
-    /* Write to the serial port */
+    const uint8_t s[] = "s,123,-456,\r\n";
     serial_write(&serial, s, sizeof(s));
+
+    // serial_write(&serial, ctoui8('s'), sizeof(ctoui8('s')));
+    // serial_write(&serial, ctoui8(','), sizeof(ctoui8(',')));
+    // serial_write(&serial, itoui8(1234), sizeof(itoui8(1234)));
+    // serial_write(&serial, ctoui8(','), sizeof(ctoui8(',')));
+    // serial_write(&serial, itoui8(-6789), sizeof(itoui8(-6789)));
+    // serial_write(&serial, ctoui8(','), sizeof(ctoui8(',')));
+    // serial_write(&serial, ctoui8('\n'), sizeof(ctoui8('\n')));
 }
 
 int main(void) {
-    serial_open(&serial, "/dev/ttyACM0", 115200);
+    serial_open(&serial, "/dev/ttyACM1", 115200);
 
+    write();
     while(1)
     {
-        write();
-        read();
-        usleep(1000);
+        if (read())
+        {
+            write();
+        }
+        // usleep(1000*1);
     }
 
     serial_close(&serial);
