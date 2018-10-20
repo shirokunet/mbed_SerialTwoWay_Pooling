@@ -108,6 +108,7 @@ int main(void) {
             printf("%d", reset_cnt);
             reset_cnt ++;
         }
+        usleep(1000);
     }
 
     serial_close(&serial);
